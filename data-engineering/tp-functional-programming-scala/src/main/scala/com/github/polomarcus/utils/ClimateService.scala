@@ -17,7 +17,7 @@ object ClimateService {
    * @return Boolean True
    */
   def isClimateRelated(description: String): Boolean = {
-    if (description.contains("global warming") | description.contains("IPCC") | description.contains("climate change"))
+    if (description.toLowerCase().contains("global warming") | description.toLowerCase().contains("ipcc") | description.toLowerCase().contains("climate change"))
       true
     else
       false
@@ -31,9 +31,16 @@ object ClimateService {
    * you can access to Tuple with myTuple._1, myTuple._2, myTuple._3
    */
   def parseRawData(list: List[(Int, Int, Double)]) : List[Option[CO2Record]] = {
-    list.map { record => ??? }
-    ???
+    list.map { record =>
+      val result = CO2Record(record._1, record._2, record._3)
+      if (result.isValidPpmValue) {
+        Some(result)
+      } else {
+        None
+      }
+    }
   }
+
 
   /**
    * remove all values from december (12) of every year
@@ -41,8 +48,12 @@ object ClimateService {
    * @param list
    * @return a list
    */
-  def filterDecemberData(list: List[Option[CO2Record]]) : List[CO2Record] = ???
-
+  def filterDecemberData(list: List[Option[CO2Record]]) : List[CO2Record] = {
+    var result = list.map {row =>
+      row.filterNot(_.month == 12)
+    }
+    result.flatten
+  }
 
   /**
    * **Tips**: look at the read me to find some tips for this function

@@ -46,10 +46,10 @@ class ClimateServiceTest extends AnyFunSuite {
   //@TODO
   test("filterDecemberData") {
     val first_record = (2010, 1, 200.2)
-    val second_record = (2001,12,5)
+    val second_record = (2001,12,5.2)
     val list = List(first_record, second_record)
     val input = ClimateService.parseRawData(list)
-
-    assert(ClimateService.filterDecemberData(input)==List(first_record))
+    ClimateService.filterDecemberData(input)
+    assert(ClimateService.filterDecemberData(input)==List(CO2Record(first_record._1,first_record._2,first_record._3)))
   }
 }
