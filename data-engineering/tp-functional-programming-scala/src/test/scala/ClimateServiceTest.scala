@@ -49,7 +49,29 @@ class ClimateServiceTest extends AnyFunSuite {
     val second_record = (2001,12,5.2)
     val list = List(first_record, second_record)
     val input = ClimateService.parseRawData(list)
-    ClimateService.filterDecemberData(input)
     assert(ClimateService.filterDecemberData(input)==List(CO2Record(first_record._1,first_record._2,first_record._3)))
   }
+
+  test("getMinMax"){
+    val first_record = (2010, 1, 200.2)
+    val second_record = (2001, 12, 5.2)
+    val third_record = (2005,12,0.1)
+    val fourth_record = (2005,3,5.0)
+    val fifth_record = (2005,4,2.0)
+    val list = List(first_record, second_record, third_record, fourth_record, fifth_record)
+    val input = ClimateService.parseRawData(list).flatten
+    assert(ClimateService.getMinMax(input)==(0.1,200.2))
+  }
+
+  test("getMinMaxByYear") {
+    val first_record = (2010, 1, 200.2)
+    val second_record = (2001, 12, 5.2)
+    val third_record = (2005, 12, 0.1)
+    val fourth_record = (2005, 3, 5.0)
+    val fifth_record = (2005, 4, 2.0)
+    val list = List(first_record, second_record, third_record, fourth_record, fifth_record)
+    val input = ClimateService.parseRawData(list).flatten
+    assert(ClimateService.getMinMaxByYear(input,2005) == (0.1, 5.0))
+  }
 }
+

@@ -59,11 +59,11 @@ object ClimateService {
    * **Tips**: look at the read me to find some tips for this function
    */
   def getMinMax(list: List[CO2Record]) : (Double, Double) = {
-    (list min Ordering[Double].on[(_,Double)](_._2),list max Ordering[Double].on[(_,Double)](_._2))
+    (list.minBy(_.ppm).ppm,list.maxBy(_.ppm).ppm)
   }
 
   def getMinMaxByYear(list: List[CO2Record], year: Int) : (Double, Double) = {
-    (list.min,list.max)
+    getMinMax(list.filter(_.year==year))
   }
 
   /**
