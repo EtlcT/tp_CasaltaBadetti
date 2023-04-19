@@ -43,18 +43,22 @@ object Main {
 
     // Show how many news we have talking about climate change compare to others news (not related climate)
     // Tips: use a groupBy
+    val countAboutClimate = NewsService.getNumberOfNews(filteredNewsAboutClimate)
+    logger.info(s"${countAboutClimate} news are related to climate on ${count} news in our dataset")
 
 
     // Use SQL to query a "news" table - look at : https://spark.apache.org/docs/latest/sql-getting-started.html#running-sql-queries-programmatically
-
+    newsDatasets.createOrReplaceTempView("news")
 
     // Use strongly typed dataset to be sure to not introduce a typo to your SQL Query
     // Tips : https://stackoverflow.com/a/46514327/3535853
+    val newsPartition = newsDatasets.filter(_.containsWordGlobalWarming).map(_.title) // retrieve all title of news related to climate
 
 
     // Save it as a columnar format with Parquet with a partition by date and media
     // Learn about Parquet : https://spark.apache.org/docs/3.2.1/sql-data-sources-parquet.html
     // Learn about partition : https://spark.apache.org/docs/3.2.1/sql-data-sources-load-save-functions.html#bucketing-sorting-and-partitioning
+    newsPartition.write.partitionBy("relatedToClimate").format("parquet").save("newsTitleRelatedToClimate.parquet")
 
     logger.info("Stopping the app")
     System.exit(0)
