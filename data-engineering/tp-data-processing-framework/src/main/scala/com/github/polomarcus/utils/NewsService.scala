@@ -3,7 +3,7 @@ package com.github.polomarcus.utils
 import com.typesafe.scalalogging.Logger
 import com.github.polomarcus.model.News
 import org.apache.spark.sql.{Dataset, SparkSession}
-import org.apache.spark.sql.functions.{col, to_timestamp}
+import org.apache.spark.sql.functions.{col, spark_partition_id, to_timestamp}
 
 import scala.util.matching.Regex
 
@@ -53,7 +53,7 @@ object NewsService {
    */
   def filterNews(newsDataset: Dataset[News]) : Dataset[News] = {
     newsDataset.filter { news =>
-      ??? //@TODO complete here
+      news.containsWordGlobalWarming == true
     }
   }
 
@@ -66,7 +66,6 @@ object NewsService {
    * @return Boolean True
    */
   def getNumberOfNews(dataset: Dataset[News]): Long = {
-    //@TODO look a the Spark API to know how to count
-    return 1 // code here
+    dataset.count()
   }
 }

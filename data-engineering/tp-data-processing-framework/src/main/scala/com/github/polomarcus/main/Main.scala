@@ -43,7 +43,7 @@ object Main {
 
     // Show how many news we have talking about climate change compare to others news (not related climate)
     // Tips: use a groupBy
-    val
+
 
     // Use SQL to query a "news" table - look at : https://spark.apache.org/docs/latest/sql-getting-started.html#running-sql-queries-programmatically
 
