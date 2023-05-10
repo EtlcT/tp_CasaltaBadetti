@@ -37,10 +37,14 @@ Using Conduktor, connect to **your existing docker kafka cluster** with `localho
 4. Send another 10 messages but with a key called "my key"
 5. Look again on which topic's partitions they are located.
 
+When we set a key a partition become associated to this key and all messages that will be sent with this key in the future will always go into this partition.
+
 Questions:
 * [ ] When should we use a key when producing a message into Kafka ? What are the risks ? [Help](https://stackoverflow.com/a/61912094/3535853)
+* We should use a key when producing a message for which order matter. Rather than distribute data "randomly" with the default dict, we can specify that the data need to go to a specific partition.
+* A possible issue with this solution is that if customers are able to make retries and that some message is not sent properly in the first place then it can result in unwished re-ordering. Another issue : a partition can be overloaded while other stay empty.
 * [ ] How does the default partitioner (sticky partition) work with kafka ? [Help1](https://www.confluent.io/fr-fr/blog/apache-kafka-producer-improvements-sticky-partitioner/) and [Help2](https://www.conduktor.io/kafka/producer-default-partitioner-and-sticky-partitioner#Sticky-Partitioner-(Kafka-%E2%89%A5-2.4)-3)
-
+Before Kafka 2.4 messages were divided to several partition so that there were as many partitions used as messages sent ; from Kafka 2.4, the default partitioner still split messages into several partition but by grouping messages so that less partition are used simultaneously. 
 #### Command CLI
 1. Connect to your kafka cluster with 2 command-line-interface (CLI)
 
@@ -65,7 +69,9 @@ Pay attention to the `KAFKA_ADVERTISED_LISTENERS` config from the docker-compose
 4. Keep reading events from a topic from one terminal : https://kafka.apache.org/documentation/#quickstart_consume
 * try the default config
 * what does the `--from-beginning` config do ? What happens when you do not use `--from-beginning` and instead the config `--group` such as --group?
-* Keep reading the message in your terminal and using Conduktor, can you notice something in the **Consumers tab** ? 
+* [ ] `--from-beginning` allow to see all messages that have been sent. `group` allow to create customer group so that each consumer from the group will have access to one ore more partition.
+* Keep reading the message in your terminal and using Conduktor, can you notice something in the **Consumers tab** ?
+* [ ] We can see in the consumers tab that the number of number of each group is available with some information about them as there memberID, with only one partition only one member has access to the data. We also can see the overall tag that give us information about how many messages have not been 'consume' by a group.
 * Now, in your terminal stop your consumer, notice the **lag** inside the **Consumer tab** on Conduktor, it should be **0**
 * With a producer, send message to the same topic, and look at the value of **lag**, what's happening ?
 * Restart your consumer with the same consumer group, what's happening ?

@@ -24,8 +24,7 @@ object PostgresService {
          |password : $password
          |""".stripMargin)
 
-    dataset.write
-      ???
+    dataset.write.format("JSON").mode("overwrite").save("./data-news-json/")
 
     logger.info("Saved news inside PG database")
 
