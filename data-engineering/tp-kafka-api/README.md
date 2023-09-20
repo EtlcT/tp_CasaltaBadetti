@@ -36,7 +36,10 @@ Download and install : https://www.conduktor.io/download/
 
 Questions:
 * [ ] When should we use a key when producing a message into Kafka ? What are the risks ? [Help](https://stackoverflow.com/a/61912094/3535853)
+* a key can be used when producing a message for which order matter. Rather than distribute data "randomly" with the default dict, we can specify that the data need to go to a specific partition.
+* The risk is to overload one partition while others can remain empty.
 * [ ] How does the default partitioner (sticky partition) work with kafka ? [Help1](https://www.confluent.io/fr-fr/blog/apache-kafka-producer-improvements-sticky-partitioner/) and [Help2](https://www.conduktor.io/kafka/producer-default-partitioner-and-sticky-partitioner#Sticky-Partitioner-(Kafka-%E2%89%A5-2.4)-3)
+* The default partitioner (<2.3) was sending one request per incoming message and so there were as many partitions used as message sent (when all partitions were used, other message were put one after another). From 2.4, partitions receive batch of messages so that less requests are sent, that result in lower latency ; less partition are busy at the same time but they deal with larger message size.
 
 ### Coding our own Kafka Client using Scala
 Instead of using the command line interface (CLI) or Conduktor to produce and consume, we are going to code our first app like pros.
@@ -66,22 +69,29 @@ docker compose run my-scala-app bash
 ##### Question 1
 Your ops team tells your app is slow and the CPU is not used much, they were hoping to help you but they are not Kafka experts.
 
-* [ ] Look at the method `producer.flush()`, can you improve the speed of the program ? 
+* [ ] Look at the method `producer.flush()`, can you improve the speed of the program ?
+* replace the flush sync method by the poll async method so that we reduce request and so latency and cpu usage ; call flush only before closing to be sure the broker get the messages
 * [ ] What about batching the messages ? [Help](https://www.conduktor.io/kafka/kafka-producer-batching)
+* no more sync but lower latency
 
 ##### Question 2
 Your friendly ops team warns you about kafka disks starting to be full. What can you do ?
 
 Tips : 
 * [ ] What about [messages compression](https://kafka.apache.org/documentation/#producerconfigs_compression.type) ? Can you implement it ? [You heard that snappy compression is great.](https://www.conduktor.io/kafka/producer-default-partitioner-and-sticky-partitioner)
+* we can set a property about compression type for the producer
 * [ ] What about [messages lifetime](https://kafka.apache.org/documentation/#topicconfigs_delete.retention.ms) on your kafka brokers ? Can you change your topic config ?
+* how many time we gonna keep the event stored before deleting it ; ensure that consumers will have time to read it
 
 ##### Question 3
 After a while and a lot of deployments and autoscaling (adding and removing due to traffic spikes), on your data quality dashboard you are seeing some messages are duplicates or missing. What can you do ?
 
 * [ ] What are ["acks"](https://kafka.apache.org/documentation/#producerconfigs_acks) ? when to use acks=0 ? when to use acks=all?
+* acknowledge that the record has been received by the broker ; acks = 0 do not care about losing the record ;  acks = all need to be sure to get the record
 * [ ] Can [idempotence](https://kafka.apache.org/documentation/#producerconfigs_enable.idempotence) help us ?
+* yes because it can reduce the memory involved and so save space
 * [ ] what is ["min.insync.replicas"](https://kafka.apache.org/documentation/#brokerconfigs_min.insync.replicas) ?
+* allow to be sure the message will not be lose without spending too much time waiting for brokers to be available
 
 #### Consumer - the service in charge of reading messages
 The goal is to read messages from our producer thanks to the ["KafkaConsumerService" class](https://github.com/polomarcus/tp/blob/main/data-engineering/tp-kafka-api/src/main/scala/com/github/polomarcus/utils/KafkaConsumerService.scala#L34-L35).
@@ -102,6 +112,8 @@ What are we noticing ? Can we change a configuration to not re read the same dat
 
 ##### Question 1
 * [ ] What happens if your consumer crash while processing data ? What is the "at most once" / "at least once" / "exactly once" semantics ? [Help](https://www.conduktor.io/kafka/complete-kafka-consumer-with-java#Automatic-Offset-Committing-Strategy-1)
+* if the consumer crash while consuming, he may be in an at least once situation if the offset is too long and so he will see again some events.
+* the at most once is if an offset is taken into account while the consumer hasn't actually process the data...
 
 ##### Question 2
 We have introduced a bug in our program, and we would like to replay some data. Can we use Conduktor to help our consumer group? Should we create a new consumer group ?
@@ -115,10 +127,15 @@ Look at :
 
 ##### Questions
 * [ ] What are the benefits to use a Schema Registry for messages ? [Help](https://docs.confluent.io/platform/current/schema-registry/index.html)
+* guarantee the structure of the data, compatibility between data produced and consumed. data consistency, compatibility, evolution
 * [ ] Where are stored schemas information ?
+* can be sent with each message or to save bandwidth and storage configure a global schema registry
 * [ ] What is serialization ? [Help](https://developer.confluent.io/learn-kafka/kafka-streams/serialization/#serialization)
+* convert data into bytes so that we increase speed and reduce volume used
 * [ ] What serialization format are supported ? [Help](https://docs.confluent.io/platform/current/schema-registry/index.html#avro-json-and-protobuf-supported-formats-and-extensibility)
+* avro, json, protobuf
 * [ ] Why is the Avro format so compact ? [Help](https://docs.confluent.io/platform/current/schema-registry/index.html#ak-serializers-and-deserializers-background)
+* avro allow to store in binary format and get json human readable view
 * [ ] What are the best practices to run a Schema Registry in production ? [Help1](https://docs.confluent.io/platform/current/schema-registry/index.html#sr-high-availability-single-primary) and [Help2](https://docs.confluent.io/platform/current/schema-registry/installation/deployment.html#running-sr-in-production)
 
 ##### Code
@@ -174,27 +191,36 @@ cat test.sink.txt
 
 **How can we use this kind of connector for a production use ( = real life cases ) ?** 
 * [ ] Can we find another connector [on the Confluent Hub](https://www.confluent.io/hub/) that can write inside **a data lake** instead of a simple text file in one of our servers ?
+ <br> There is the Azure Data Lake Storage Gen2 Sink Connector that can allowed us to connect to Azure datalake for exemple.
 
 ##### How do Serializers work for Kafka connect ?
 Inside `kafka-connect-config/connect-file-sink.properties`, we need to set the serializer we used to produce the data, for our case we want to use the **String Serializer** inside our config.
-
+<br> The value.converter is not mandatory here because we're dealing with string and so there is no specific schema for the streamed data. 
+<br>
 Tips : [Kafka Connect Deep Dive – Converters and Serialization Explained](https://www.confluent.io/fr-fr/blog/kafka-connect-deep-dive-converters-serialization-explained/)
 
 ##### How do consumer group work for Kafka connect ?
 Look on Conduktor to see if a Connector use a consumer group to bookmark partitions' offsets.
-
+<br>no lag for connector ? the offset is stored inside another topic connect.config
 #### Kafka Streams
 [Kafka Streams Intro](https://kafka.apache.org/documentation/streams/)
 
 [Streams Developer Guide](https://docs.confluent.io/platform/current/streams/developer-guide/dsl-api.html#overview)
 
 * [ ] What are the differences between the consumer, the producer APIs, and Kafka streams ? [Help1](https://stackoverflow.com/a/44041420/3535853)
+* if we do not use kafka stream we have to set up each stream like manually instead kafka stream allows us to consume from several topics and produce to several ones too at the same time
 * [ ] When to use Kafka Streams instead of the consumer API ?
+* when we want to apply filters or do some pre processing on the data before consuming it
 * [ ] What is a `SerDe`?
+* Serializer deserializer to convert data into bytes and vice versa
 * [ ] What is a KStream?
+* allow to do some pre preprocessing on our data by applying filters for exemple
 * [ ] What is a KTable? What is a compacted topic ?
+* A Ktable is used to store the streamed data so that Kstream can get it again. compacted topic allow to keep only the last version : last offset of a consumer ; last schema in use
 * [ ] What is a GlobalKTable?
+* available for any 'stream and partition of Kstream' while KTable are reserved to one specific stream
 * [ ] What is a [stateful operation](https://developer.confluent.io/learn-kafka/kafka-streams/stateful-operations/) ?
+* if the key matter because we neeed the data to be stored in a specific partition we will use stateful operation instead of stateless ones
 
 What are the new [configs](https://kafka.apache.org/documentation/#streamsconfigs) we can use ?
 

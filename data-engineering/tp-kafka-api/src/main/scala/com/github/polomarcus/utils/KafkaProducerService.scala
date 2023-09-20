@@ -14,6 +14,9 @@ object KafkaProducerService {
 
   props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
   props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
+  props.put(ProducerConfig.LINGER_MS_CONFIG, "20")
+  props.put(ProducerConfig.BATCH_SIZE_CONFIG, Integer.toString(32*1024))
+  props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy")
   props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "false")
 
   private val producer = new KafkaProducer[String, String](props)
@@ -31,8 +34,7 @@ object KafkaProducerService {
       case e:Exception => logger.error(e.toString)
     } finally { // --> "finally" happens everytime and the end, even if there is an error
       //@see on why using flush : https://github.com/confluentinc/confluent-kafka-python/issues/137#issuecomment-282427382
-      //@TODO to speed up this function that send one message at the time, what could we do ?
-      producer.flush()
+      //@TODO to speed up this function that send one message at the time, what could we do ? --> do not need flush here
     }
   }
 
